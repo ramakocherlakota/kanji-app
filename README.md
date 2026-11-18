@@ -5,9 +5,9 @@ A large-print kanji matching drill. Pick an English word, then the kanji that me
 - Four modes: Meaning → Kanji, Kanji → Meaning, Kanji → Reading, Reading → Kanji.
 - Practice in rounds (5–20 words, shown a few at a time). A missed word comes back later in
   the same round, so a round ends only when every word is matched.
-- After each guess the answered word is replaced and the choices reshuffle.
+- Pick a mode from the menu and press Start. As soon as you pick a pair, the next word comes in and the
+  choices reshuffle; every answer is listed under the board for the round.
 - Extra look-alike kanji (木/本, 人/入, 日/目 …) stop you from answering by elimination.
-- The board waits for your tap before moving on, so tiles never move under your finger.
 - Adjustable kanji and word size, three kanji typefaces, light/dark themes, keyboard play
   (number keys pick a word, letter keys pick a kanji), optional spoken readings.
 - Missed kanji come back sooner and collect in a "Needs practice" list (saved in your browser).

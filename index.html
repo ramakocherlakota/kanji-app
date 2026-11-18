@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Klee+One:wght@600&family=Noto+Sans+JP:wght@500&family=Noto+Serif+JP:wght@600&display=swap">
 <style>
-/* Layout: one working screen. Score strip and mode picker on top, round progress, two columns (prompts | shuffled choices), big feedback bar, settings and review below. */
+/* Layout: one working screen. Title with mode menu and Start on top, round status, two columns (prompts | shuffled choices), this round's answer log, settings and review below. */
 :root {
   --bg: #F3F4F8;
   --surface: #FFFFFF;
@@ -60,26 +60,20 @@ body {
 header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
 h1 { margin: 0; font-size: 34px; letter-spacing: 0.01em; display: flex; align-items: baseline; gap: 12px; text-wrap: balance; }
 h1 .jp { font-family: var(--font-kanji); font-size: 40px; color: var(--accent); }
-.score { display: flex; flex-wrap: wrap; gap: 10px; }
-.stat { background: var(--surface); border: 2px solid var(--line); border-radius: 10px; padding: 6px 14px; display: flex; gap: 8px; align-items: baseline; font-variant-numeric: tabular-nums; }
-.stat b { font-size: 26px; }
-.stat span { font-size: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-
-.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 10px; }
-.modes label {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border: 3px solid var(--line); border-radius: 12px;
-  padding: 12px 16px; cursor: pointer; background: var(--surface); font-weight: 700; font-size: 21px;
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.controls label { font-weight: 700; font-size: 22px; }
+.controls select {
+  font: 700 22px var(--font-ui); color: var(--fg); background: var(--surface);
+  border: 3px solid var(--line); border-radius: 12px; padding: 10px 14px; min-height: 56px; max-width: 100%;
 }
-.modes input { width: 26px; height: 26px; margin: 0; accent-color: var(--accent); flex: none; }
-.modes label:has(input:checked) { background: var(--accent-tint); border-color: var(--accent); }
-.modes label:has(input:focus-visible) { outline: 5px solid var(--focus); outline-offset: 3px; }
-.modes .ex { font-family: var(--font-kanji); font-weight: 600; color: var(--muted); font-size: 18px; margin-left: auto; white-space: nowrap; }
+.controls .btn-big { align-self: auto; }
+
 
 .howto summary { font-size: 20px; padding: 10px 0; cursor: pointer; font-weight: 700; }
 .howto[open] summary { margin-bottom: 4px; }
 .instructions { margin: 0 0 16px; color: var(--muted); font-size: 19px; max-width: 62ch; }
 
-.roundbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; font-size: 22px; font-weight: 700; }
+.roundbar { font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; font-size: 22px; font-weight: 700; }
 .pips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 240px; }
 .pip { flex: 1 1 0; min-width: 14px; max-width: 48px; height: 18px; border: 2px solid var(--line); border-radius: 5px; background: var(--surface); }
 .pip.done { background: var(--good); border-color: var(--good); }
@@ -116,21 +110,21 @@ h1 .jp { font-family: var(--font-kanji); font-size: 40px; color: var(--accent); 
 .card.is-bad::after { content: "✗ Your pick"; color: var(--bad); }
 .card.is-answer { border-color: var(--good); border-width: 6px; }
 .card.is-answer::after { content: "✓ Answer"; color: var(--good); }
-.board.locked .card { cursor: default; }
 .board.fade .choices .card { animation: pop .28s ease-out; }
 @keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
 
-.feedback {
-  min-height: 92px; background: var(--surface); border: 3px solid var(--line); border-radius: 14px;
-  padding: 14px 18px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 24px; cursor: pointer;
-}
-.feedback.good { border-color: var(--good); background: var(--good-tint); }
-.feedback.bad { border-color: var(--bad); background: var(--bad-tint); }
-.feedback .big { font-family: var(--font-kanji); font-size: calc(var(--kj-size) * 0.6); line-height: 1; }
-.feedback .read { font-family: var(--font-kanji); }
-.feedback .txt { min-width: 0; flex: 1 1 260px; }
-.feedback .txt strong { display: block; }
-.feedback .next { display: block; margin-top: 6px; font-size: 18px; color: var(--muted); }
+.log h2 { margin: 0 0 10px; font-size: 17px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.log ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.entry { display: flex; align-items: center; gap: 16px; background: var(--surface); border: 3px solid var(--good); border-radius: 14px; padding: 10px 16px; }
+.entry.bad { border-color: var(--bad); border-style: dashed; background: var(--bad-tint); }
+.entry .mark { font-size: 30px; font-weight: 700; color: var(--good); flex: none; width: 1.2em; text-align: center; }
+.entry.bad .mark { color: var(--bad); }
+.entry .big { font-family: var(--font-kanji); font-size: calc(var(--kj-size) * 0.55); line-height: 1; flex: none; }
+.entry .txt { min-width: 0; font-size: 22px; }
+.entry .m { font-weight: 700; }
+.entry .read { font-family: var(--font-kanji); }
+.entry .pick { color: var(--bad); font-weight: 700; }
+.entry.new { animation: pop .28s ease-out; }
 
 .summary { background: var(--surface); border: 3px solid var(--good); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .summary h2 { margin: 0; font-size: 32px; text-wrap: balance; }
@@ -185,24 +179,21 @@ input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
 <div class="wrap">
   <header>
     <h1><span class="jp" lang="ja">漢字</span> Kanji Shuffle</h1>
-    <div class="score" aria-label="Score">
-      <div class="stat"><b id="sStreak">0</b><span>streak</span></div>
-      <div class="stat"><b id="sRight">0</b><span>right</span></div>
-      <div class="stat"><b id="sTotal">0</b><span>tries</span></div>
-      <div class="stat"><b id="sBest">0</b><span>best</span></div>
+    <div class="controls">
+      <label for="modeSel">Mode</label>
+      <select id="modeSel">
+        <option value="en2kj">Meaning → Kanji</option>
+        <option value="kj2en">Kanji → Meaning</option>
+        <option value="kj2kana">Kanji → Reading</option>
+        <option value="kana2kj">Reading → Kanji</option>
+      </select>
+      <button class="btn-big" type="button" id="startBtn">Start</button>
     </div>
   </header>
 
-  <div class="modes" role="radiogroup" aria-label="Practice mode">
-    <label><input type="radio" name="mode" id="mode-en2kj" value="en2kj"> Meaning → Kanji <span class="ex" lang="ja">tree → 木</span></label>
-    <label><input type="radio" name="mode" id="mode-kj2en" value="kj2en"> Kanji → Meaning <span class="ex" lang="ja">木 → tree</span></label>
-    <label><input type="radio" name="mode" id="mode-kj2kana" value="kj2kana"> Kanji → Reading <span class="ex" lang="ja">木 → き</span></label>
-    <label><input type="radio" name="mode" id="mode-kana2kj" value="kana2kj"> Reading → Kanji <span class="ex" lang="ja">き → 木</span></label>
-  </div>
-
   <details class="howto" id="howto" open>
     <summary>How to play</summary>
-    <p class="instructions">Each round has a set of words, shown a few at a time. Pick one on the left, then its match on the right. A word you answer is replaced by the next one from the round, and the choices reshuffle. A word you miss comes back later in the same round, so the round ends only when you have matched every word. Keyboard: number keys pick on the left, letter keys pick on the right.</p>
+    <p class="instructions">Choose a mode and press Start. Each round has a set of words, shown a few at a time. Pick one on the left, then its match on the right. As soon as you pick both, the next word takes its place and the choices reshuffle. Every answer is listed under the board. A word you miss comes back later in the same round, so the round ends only when you have matched every word. Keyboard: number keys pick on the left, letter keys pick on the right.</p>
   </details>
 
   <div class="roundbar" id="roundbar">
@@ -228,9 +219,11 @@ input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
     <button class="btn-big" type="button" id="nextRound">Start next round</button>
   </section>
 
-  <div class="feedback" id="feedback" aria-live="polite">
-    <div class="txt">Choose a word and its match to start.</div>
-  </div>
+  <section class="log" aria-labelledby="logHead">
+    <h2 id="logHead">This round</h2>
+    <ol id="log"></ol>
+    <p class="empty" id="logEmpty">Your answers will appear here, newest first.</p>
+  </section>
 
   <div class="panels">
     <details class="panel" id="setDetails" open>
@@ -279,7 +272,7 @@ input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
             <label><input type="radio" name="extra" id="extra4" value="4"> 4</label>
             <label><input type="radio" name="extra" id="extra6" value="6"> 6</label>
           </div>
-          <p class="hint">Extra choices stop you from finding the last answer by elimination. Each mode remembers its own number.</p>
+          <p class="hint">Extra choices stop you from finding the last answer by elimination. Each mode remembers its own number. Changes apply when you press Start.</p>
           <div class="chk"><label><input type="checkbox" id="alike"> Use look-alike kanji for the extras (like 木 and 本, 人 and 入)</label></div>
         </div>
         <div class="field">
@@ -288,15 +281,6 @@ input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
             <label><input type="checkbox" id="lvlN5" value="N5"> <span>JLPT N5 (<span id="cntN5"></span>)</span></label>
             <label><input type="checkbox" id="lvlN4" value="N4"> <span>JLPT N4 starter (<span id="cntN4"></span>)</span></label>
           </div>
-        </div>
-        <div class="field">
-          <span class="lbl" id="paceLbl">After a guess, move on</span>
-          <div class="row seg" role="radiogroup" aria-labelledby="paceLbl">
-            <label><input type="radio" name="wait" id="wait0" value="0"> When I tap</label>
-            <label><input type="radio" name="wait" id="wait2" value="2000"> After 2 s</label>
-            <label><input type="radio" name="wait" id="wait4" value="4000"> After 4 s</label>
-          </div>
-          <p class="hint">The board never changes under your finger. Your tap moves to the next word and is not counted as a guess.</p>
         </div>
         <div class="field chk">
           <label><input type="checkbox" id="speak"> Say the Japanese reading aloud after each guess</label>
@@ -514,14 +498,14 @@ const store = {
 const DEFAULTS = {
   kj: 112, en: 28, font: "klee", mode: "en2kj", roundSize: 10, pairs: 4,
   extraBy: { en2kj: 2, kj2en: 4, kj2kana: 4, kana2kj: 2 },
-  alike: true, levels: ["N5"], speak: false, wait: 0
+  alike: true, levels: ["N5"], speak: false
 };
 const saved = store.get("ks-settings", {});
 const settings = Object.assign({}, DEFAULTS, saved);
 settings.extraBy = Object.assign({}, DEFAULTS.extraBy, saved.extraBy || {});
 if (!MODES[settings.mode]) settings.mode = "en2kj";
 
-const progress = Object.assign({ cards: {}, right: 0, total: 0, streak: 0, best: 0, rounds: 0 }, store.get("ks-progress", {}));
+const progress = Object.assign({ cards: {}, rounds: 0 }, store.get("ks-progress", {}));
 // Older versions stored progress per kanji only; that was Meaning → Kanji practice.
 for (const key of Object.keys(progress.cards)) {
   if (!key.includes("|")) { progress.cards["en2kj|" + key] = progress.cards[key]; delete progress.cards[key]; }
@@ -539,7 +523,7 @@ const $ = id => document.getElementById(id);
 let state = {
   round: null,
   targets: [], decoys: [], pOrder: [], cOrder: [],
-  sel: { p: null, c: null }, locked: false, advance: null, readyAt: 0
+  sel: { p: null, c: null }, readyAt: 0
 };
 
 function mode() { return MODES[settings.mode]; }
@@ -570,18 +554,15 @@ function pickRound(n) {
 }
 function startRound() {
   const words = pickRound(settings.roundSize);
-  state.round = { num: progress.rounds + 1, words, queue: words.slice(), cleared: new Set(), missed: new Set() };
+  state.round = { num: progress.rounds + 1, words, queue: words.slice(), cleared: new Set(), missed: new Set(), mistakes: 0 };
   state.targets = []; state.pOrder = []; state.cOrder = [];
-  state.locked = false; state.advance = null;
   $("summary").hidden = true; $("board").hidden = false;
-  const fb = $("feedback"); fb.className = "feedback"; fb.hidden = false;
-  fb.innerHTML = '<div class="txt">Choose a word on the left, then its match on the right.</div>';
+  $("log").innerHTML = ""; $("logEmpty").hidden = false;
   fillBoard(); applyMode(); render(true); renderRoundBar();
 }
 function renderRoundBar() {
   const r = state.round;
-  const left = r.words.length - r.cleared.size;
-  $("roundText").textContent = `Round ${r.num} · ${left} of ${r.words.length} left`;
+  $("roundText").textContent = `Round ${r.num} · ${mode().name} · ${r.cleared.size} of ${r.words.length} matched · ${r.mistakes} ${r.mistakes === 1 ? "mistake" : "mistakes"}`;
   const pips = $("pips"); pips.innerHTML = "";
   for (const k of r.words) {
     const d = document.createElement("span");
@@ -594,7 +575,7 @@ function showSummary() {
   const r = state.round;
   progress.rounds = r.num; store.set("ks-progress", progress);
   const firstTry = r.words.length - r.missed.size;
-  $("board").hidden = true; $("feedback").hidden = true;
+  $("board").hidden = true;
   $("summary").hidden = false;
   $("sumHead").textContent = `Round ${r.num} complete`;
   $("sumText").textContent = r.missed.size
@@ -667,8 +648,9 @@ function applyMode() {
   $("pHead").textContent = m.pHead; $("cHead").textContent = m.cHead;
   $("pList").className = listClass(m.prompt, false);
   $("cList").className = "choices " + listClass(m.choice, true);
-  $("extraMode").textContent = `(for ${m.name})`;
+  applyModeLabel();
 }
+function applyModeLabel() { $("extraMode").textContent = `(for ${MODES[settings.mode].name})`; }
 function render(animate) {
   const m = mode();
   const pList = $("pList"), cList = $("cList");
@@ -681,7 +663,7 @@ function render(animate) {
 }
 
 function choose(side, k) {
-  if (state.locked || Date.now() < state.readyAt) return;
+  if (Date.now() < state.readyAt) return;
   state.sel[side] = state.sel[side] === k ? null : k;
   const list = side === "p" ? $("pList") : $("cList");
   list.querySelectorAll(".card").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === state.sel[side] ? "true" : "false"));
@@ -695,46 +677,35 @@ function describePick(p) {
   return `You picked ${reading(p)}, which is ${p.k} (“${p.m}”).`;
 }
 function guess(target, picked) {
-  state.locked = true;
   const r = state.round;
   const ok = target === picked;
   const t = BY_K[target], p = BY_K[picked];
   const key = settings.mode + "|" + target;
   const c = progress.cards[key] || { box: 1, right: 0, wrong: 0 };
   if (ok) {
-    c.box = Math.min(5, c.box + 1); c.right++; progress.right++; progress.streak++;
-    progress.best = Math.max(progress.best, progress.streak);
+    c.box = Math.min(5, c.box + 1); c.right++;
     r.cleared.add(target);
   } else {
-    c.box = 0; c.wrong++; progress.streak = 0;
-    r.missed.add(target);
+    c.box = 0; c.wrong++;
+    r.missed.add(target); r.mistakes++;
     r.queue.push(target); // comes back later in this round
   }
-  progress.cards[key] = c; progress.total++;
+  progress.cards[key] = c;
   store.set("ks-progress", progress);
 
-  document.querySelectorAll("#board .card").forEach(b => b.setAttribute("aria-pressed", "false"));
-  const pBtn = $("pList").querySelector(`[data-k="${target}"]`);
-  const cPicked = $("cList").querySelector(`[data-k="${picked}"]`);
-  const cAns = $("cList").querySelector(`[data-k="${target}"]`);
-  if (ok) { pBtn.classList.add("is-good"); cPicked.classList.add("is-good"); }
-  else { pBtn.classList.add("is-answer"); cPicked.classList.add("is-bad"); cAns.classList.add("is-answer"); }
-  $("board").classList.add("locked");
-
-  const fb = $("feedback");
-  fb.className = "feedback " + (ok ? "good" : "bad");
-  fb.innerHTML = "";
-  const big = document.createElement("span"); big.className = "big"; big.lang = "ja"; big.textContent = t.k;
-  const txt = document.createElement("div"); txt.className = "txt";
-  const head = document.createElement("strong");
-  head.textContent = ok ? `✓ Right. ${t.k} means “${t.m}”.` : `✗ ${t.k} means “${t.m}”. ${describePick(p)}`;
-  const rd = document.createElement("span"); rd.className = "read"; rd.lang = "ja"; rd.textContent = reading(t);
-  const more = document.createElement("span"); more.className = "next";
-  const last = r.cleared.size === r.words.length;
-  more.textContent = last ? "Tap any tile or press Enter to finish the round." : "Tap any tile or press Enter to continue.";
-  txt.append(head, rd, more);
-  fb.append(big, txt);
-  $("srStatus").textContent = head.textContent + (ok ? "" : " It will come back later in this round.");
+  // Record the answer under the board.
+  const li = document.createElement("li");
+  li.className = "entry new" + (ok ? "" : " bad");
+  li.innerHTML = '<span class="mark" aria-hidden="true"></span><span class="big" lang="ja"></span><div class="txt"><div class="m"></div><div class="read" lang="ja"></div><div class="pick"></div></div>';
+  li.querySelector(".mark").textContent = ok ? "✓" : "✗";
+  li.querySelector(".big").textContent = t.k;
+  li.querySelector(".m").textContent = `${ok ? "Right" : "Missed"}: ${t.k} means “${t.m}”`;
+  li.querySelector(".read").textContent = reading(t);
+  li.querySelector(".pick").textContent = ok ? "" : describePick(p);
+  const log = $("log");
+  log.querySelectorAll(".entry.new").forEach(e => e.classList.remove("new"));
+  log.prepend(li); $("logEmpty").hidden = true;
+  $("srStatus").textContent = ok ? `Right. ${t.k}, ${t.m}.` : `Missed. ${t.k} means ${t.m}. ${describePick(p)}`;
 
   if (settings.speak && "speechSynthesis" in window) {
     try {
@@ -744,37 +715,17 @@ function guess(target, picked) {
       speechSynthesis.speak(u);
     } catch (e) {}
   }
-  updateScore(); renderReview(); renderRoundBar();
+  renderReview(); renderRoundBar();
 
-  let timer = null;
-  state.advance = () => {
-    if (!state.advance) return;
-    state.advance = null;
-    clearTimeout(timer);
-    state.targets = state.targets.filter(k => k !== target);
-    state.locked = false;
-    $("board").classList.remove("locked");
-    if (!state.targets.length && !r.queue.length) { showSummary(); return; }
-    fillBoard();
-    state.readyAt = Date.now() + 400; // ignore a second, accidental tap right after the new board appears
-    render(true);
-  };
-  if (settings.wait > 0) timer = setTimeout(state.advance, settings.wait);
+  // Straight on to the next word.
+  state.targets = state.targets.filter(k => k !== target);
+  if (!state.targets.length && !r.queue.length) { showSummary(); return; }
+  fillBoard();
+  state.readyAt = Date.now() + 300; // ignore an accidental double tap
+  render(true);
 }
-
-// While an answer is showing, a tap on the board only moves on; it never selects a tile.
-document.addEventListener("click", e => {
-  if (!state.locked || !state.advance) return;
-  if (!e.target.closest("#board, #feedback")) return;
-  e.preventDefault(); e.stopPropagation();
-  state.advance();
-}, true);
 
 // ---- Score and review ----
-function updateScore() {
-  $("sStreak").textContent = progress.streak; $("sRight").textContent = progress.right;
-  $("sTotal").textContent = progress.total; $("sBest").textContent = progress.best;
-}
 function chip(x, note) {
   const d = document.createElement("div"); d.className = "chip";
   d.innerHTML = `<span class="g" lang="ja"></span><div><div class="m"></div><div class="r" lang="ja"></div><div class="c"></div></div>`;
@@ -808,7 +759,6 @@ function applyVisual() {
   $("kjSizeVal").textContent = settings.kj; $("enSizeVal").textContent = settings.en;
 }
 function save() { store.set("ks-settings", settings); }
-function restart() { if (!state.locked) startRound(); }
 function syncExtraRadios() {
   document.querySelectorAll('input[name="extra"]').forEach(inp => { inp.checked = +inp.value === extra(); });
 }
@@ -828,14 +778,15 @@ function initControls() {
       });
     });
   };
-  radios("mode", "mode", false, () => { syncExtraRadios(); restart(); });
+  $("modeSel").value = settings.mode;
+  $("modeSel").addEventListener("change", e => { settings.mode = e.target.value; save(); syncExtraRadios(); applyModeLabel(); });
+  $("startBtn").addEventListener("click", startRound);
   radios("font", "font", false);
-  radios("roundSize", "roundSize", true, restart);
-  radios("pairs", "pairs", true, restart);
-  radios("wait", "wait", true);
+  radios("roundSize", "roundSize", true);
+  radios("pairs", "pairs", true);
   syncExtraRadios();
   document.querySelectorAll('input[name="extra"]').forEach(inp => inp.addEventListener("change", () => {
-    settings.extraBy[settings.mode] = +inp.value; save(); restart();
+    settings.extraBy[settings.mode] = +inp.value; save();
   }));
   ["lvlN5", "lvlN4"].forEach(id => {
     const inp = $(id);
@@ -843,11 +794,11 @@ function initControls() {
     inp.addEventListener("change", () => {
       const lv = ["lvlN5", "lvlN4"].filter(i => $(i).checked).map(i => $(i).value);
       if (!lv.length) { inp.checked = true; return; }
-      settings.levels = lv; save(); restart();
+      settings.levels = lv; save();
     });
   });
   $("alike").checked = settings.alike;
-  $("alike").addEventListener("change", e => { settings.alike = e.target.checked; save(); restart(); });
+  $("alike").addEventListener("change", e => { settings.alike = e.target.checked; save(); });
   $("speak").checked = settings.speak;
   $("speak").addEventListener("change", e => { settings.speak = e.target.checked; save(); });
   $("nextRound").addEventListener("click", startRound);
@@ -858,8 +809,8 @@ function initControls() {
     $("resetBtn").addEventListener("click", () => {
       area.innerHTML = '<span>Clear your score and practice list?</span><button class="btn danger" type="button" id="resetYes">Yes, clear it</button><button class="btn" type="button" id="resetNo">Keep it</button>';
       $("resetYes").addEventListener("click", () => {
-        Object.assign(progress, { cards: {}, right: 0, total: 0, streak: 0, best: 0, rounds: 0 });
-        store.set("ks-progress", progress); updateScore(); renderReview(); showReset(); startRound();
+        Object.assign(progress, { cards: {}, rounds: 0 });
+        store.set("ks-progress", progress); renderReview(); showReset(); startRound();
       });
       $("resetNo").addEventListener("click", showReset);
       $("resetYes").focus();
@@ -871,13 +822,9 @@ function initControls() {
 document.addEventListener("keydown", e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const t = e.target;
-  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SUMMARY")) return;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.tagName === "SUMMARY" || t.tagName === "BUTTON" && !t.classList.contains("card"))) return;
   if (!$("summary").hidden) {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startRound(); }
-    return;
-  }
-  if (state.locked && state.advance) {
-    if (e.key === "Enter" || e.key === " " || /^[0-9a-z]$/i.test(e.key)) { e.preventDefault(); state.advance(); }
     return;
   }
   const n = parseInt(e.key, 10);
@@ -893,7 +840,6 @@ document.addEventListener("keydown", e => {
 })();
 applyVisual();
 initControls();
-updateScore();
 renderReview();
 startRound();
 </script>
