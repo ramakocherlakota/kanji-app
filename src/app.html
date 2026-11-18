@@ -59,6 +59,12 @@ h1 .jp { font-family: var(--font-kanji); font-size: 40px; color: var(--accent); 
   border: 3px solid var(--line); border-radius: 12px; padding: 10px 14px; min-height: 56px; max-width: 100%;
 }
 .controls .btn-big { align-self: auto; }
+.controls .btn { min-height: 56px; }
+.history { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-variant-numeric: tabular-nums; }
+.history .h-lbl { font-weight: 700; font-size: 18px; color: var(--muted); margin-right: 4px; }
+.history .h { background: var(--surface); border: 2px solid var(--line); border-radius: 10px; padding: 4px 12px; font-size: 20px; }
+.history .h b { font-size: 22px; }
+.history .h.perfect { border-color: var(--good); background: var(--good-tint); }
 
 
 .howto summary { font-size: 20px; padding: 10px 0; cursor: pointer; font-weight: 700; }
@@ -180,8 +186,11 @@ input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
         <option value="kana2kj">Reading → Kanji</option>
       </select>
       <button class="btn-big" type="button" id="startBtn">Start</button>
+      <button class="btn" type="button" id="resetRounds">Reset rounds</button>
     </div>
   </header>
+
+  <div class="history" id="history" aria-label="Right the first time, by round"></div>
 
   <details class="howto" id="howto" open>
     <summary>How to play</summary>
@@ -310,7 +319,7 @@ const RAW = `
 月|month; moon|ゲツ・ガツ|つき|N5
 火|fire|カ|ひ|N5
 水|water|スイ|みず|N5
-木|tree|モク・ボク|き|N5
+木|tree; wood|モク・ボク|き|N5
 金|gold; money|キン|かね|N5
 土|soil; earth|ド・ト|つち|N5
 曜|day of the week|ヨウ||N5
@@ -457,6 +466,10 @@ const KANJI = RAW.trim().split("\n").map(l => {
 const BY_K = Object.fromEntries(KANJI.map(x => [x.k, x]));
 // Groups of kanji that are easy to mix up: similar shapes or a shared part.
 const LOOKALIKES = [
+  // Closest pairs: these are offered first.
+  "木本", "人入", "大犬", "大天", "午牛", "千干", "日目", "白百", "右石", "左右", "土上", "小少",
+  "間聞", "母毎", "王玉", "九力", "夕多", "日月", "目見", "休体", "住往", "読語", "待持", "近遠",
+  // Wider families: similar shapes or a shared part.
   "木本休体", "木村休", "人入八", "大天犬", "午牛千十", "半千十", "手千午",
   "日目白百", "田口日目", "国口田", "田男町画", "男力", "思心田",
   "右左石", "右名古口", "夕多名外", "夜外夕", "今会金", "答会今",
@@ -466,10 +479,14 @@ const LOOKALIKES = [
   "広店", "強弱", "近遠道週", "真目", "立音", "女安", "子学", "社土上",
   "歌飲", "上下", "万方", "円内", "王玉", "字学", "一二三", "月明朝肉", "四西", "五七", "九力", "白自", "冬夏", "火秋"
 ];
+// SIMILAR[k] maps each look-alike to a closeness score: smaller groups are closer matches.
 const SIMILAR = {};
 for (const g of LOOKALIKES) {
   const ks = [...g].filter(k => BY_K[k]);
-  for (const a of ks) for (const b of ks) if (a !== b) (SIMILAR[a] = SIMILAR[a] || new Set()).add(b);
+  for (const a of ks) for (const b of ks) if (a !== b) {
+    const m = (SIMILAR[a] = SIMILAR[a] || {});
+    m[b] = Math.min(m[b] || 99, ks.length);
+  }
 }
 
 // What each mode shows on the left (prompt) and right (choices).
@@ -497,7 +514,7 @@ const settings = Object.assign({}, DEFAULTS, saved);
 settings.extraBy = Object.assign({}, DEFAULTS.extraBy, saved.extraBy || {});
 if (!MODES[settings.mode]) settings.mode = "en2kj";
 
-const progress = Object.assign({ cards: {}, rounds: 0 }, store.get("ks-progress", {}));
+const progress = Object.assign({ cards: {}, rounds: 0, history: [] }, store.get("ks-progress", {}));
 // Older versions stored progress per kanji only; that was Meaning → Kanji practice.
 for (const key of Object.keys(progress.cards)) {
   if (!key.includes("|")) { progress.cards["en2kj|" + key] = progress.cards[key]; delete progress.cards[key]; }
@@ -565,8 +582,11 @@ function renderRoundBar() {
 }
 function showSummary() {
   const r = state.round;
-  progress.rounds = r.num; store.set("ks-progress", progress);
   const firstTry = r.words.length - r.missed.size;
+  progress.rounds = r.num;
+  progress.history.push({ n: r.num, right: firstTry, total: r.words.length, mode: settings.mode });
+  store.set("ks-progress", progress);
+  renderHistory();
   $("board").hidden = true;
   $("summary").hidden = false;
   $("sumHead").textContent = `Round ${r.num} complete`;
@@ -578,6 +598,25 @@ function showSummary() {
   $("nextRound").textContent = `Start round ${r.num + 1}`;
   $("nextRound").focus();
   $("srStatus").textContent = `Round ${r.num} complete. ${$("sumText").textContent}`;
+}
+
+function renderHistory() {
+  const el = $("history"); el.innerHTML = "";
+  if (!progress.history.length) { el.innerHTML = '<span class="h-lbl">Finished rounds will show your score here.</span>'; return; }
+  const lbl = document.createElement("span"); lbl.className = "h-lbl"; lbl.textContent = "Right first time:";
+  el.appendChild(lbl);
+  for (const h of progress.history.slice(-30)) {
+    const d = document.createElement("span");
+    d.className = "h" + (h.right === h.total ? " perfect" : "");
+    d.title = MODES[h.mode] ? MODES[h.mode].name : "";
+    d.innerHTML = `Round ${h.n}: <b>${h.right}</b>/${h.total}`;
+    el.appendChild(d);
+  }
+}
+function resetRounds() {
+  progress.rounds = 0; progress.history = [];
+  store.set("ks-progress", progress);
+  renderHistory(); startRound();
 }
 
 // ---- Board ----
@@ -592,8 +631,9 @@ function pickDecoys(n) {
     // Round-robin: give each word on the board a look-alike of its answer before doubling up.
     const inPool = new Set(pool().map(x => x.k));
     const lists = shuffle(state.targets).map(t => {
-      const sims = shuffle([...(SIMILAR[t] || [])]);
-      return sims.filter(k => inPool.has(k)).concat(sims.filter(k => !inPool.has(k)));
+      // Closest look-alike first (本 gets 木 before 休), then kanji from your chosen sets.
+      const sim = SIMILAR[t] || {};
+      return shuffle(Object.keys(sim)).sort((a, b) => (sim[a] - sim[b]) || (inPool.has(b) - inPool.has(a)));
     });
     let added = true;
     while (out.length < n && added) {
@@ -773,6 +813,18 @@ function initControls() {
   $("modeSel").value = settings.mode;
   $("modeSel").addEventListener("change", e => { settings.mode = e.target.value; save(); syncExtraRadios(); applyModeLabel(); });
   $("startBtn").addEventListener("click", startRound);
+  // Two-step so a stray tap next to Start doesn't wipe the scores.
+  let resetTimer = null;
+  $("resetRounds").addEventListener("click", e => {
+    const b = e.currentTarget;
+    if (b.dataset.armed) {
+      clearTimeout(resetTimer); delete b.dataset.armed; b.textContent = "Reset rounds"; b.classList.remove("danger");
+      resetRounds();
+    } else {
+      b.dataset.armed = "1"; b.textContent = "Tap again to reset"; b.classList.add("danger");
+      resetTimer = setTimeout(() => { delete b.dataset.armed; b.textContent = "Reset rounds"; b.classList.remove("danger"); }, 4000);
+    }
+  });
   radios("font", "font", false);
   radios("roundSize", "roundSize", true);
   radios("pairs", "pairs", true);
@@ -801,8 +853,8 @@ function initControls() {
     $("resetBtn").addEventListener("click", () => {
       area.innerHTML = '<span>Clear your score and practice list?</span><button class="btn danger" type="button" id="resetYes">Yes, clear it</button><button class="btn" type="button" id="resetNo">Keep it</button>';
       $("resetYes").addEventListener("click", () => {
-        Object.assign(progress, { cards: {}, rounds: 0 });
-        store.set("ks-progress", progress); renderReview(); showReset(); startRound();
+        Object.assign(progress, { cards: {}, rounds: 0, history: [] });
+        store.set("ks-progress", progress); renderReview(); renderHistory(); showReset(); startRound();
       });
       $("resetNo").addEventListener("click", showReset);
       $("resetYes").focus();
@@ -832,6 +884,7 @@ document.addEventListener("keydown", e => {
 })();
 applyVisual();
 initControls();
+renderHistory();
 renderReview();
 startRound();
 </script>
