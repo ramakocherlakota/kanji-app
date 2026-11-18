@@ -458,7 +458,51 @@ const RAW = `
 弱|weak|ジャク|よわ|N4
 広|wide|コウ|ひろ|N4
 答|answer|トウ|こた|N4
+間|interval; between|カン・ケン|あいだ・ま|N5
+開|to open|カイ|ひら・あ|N4
+問|question|モン|と|N4
+自|self|ジ・シ|みずか|N4
+主|master; main|シュ|ぬし・おも|N4
+住|to live (reside)|ジュウ|す|N4
+特|special|トク||N4
+字|character; letter|ジ|あざ|N4
+方|direction; side|ホウ|かた|N4
+門|gate|モン|かど|X
+閉|to close|ヘイ|し・と|X
+夫|husband|フ|おっと|X
+士|samurai; scholar|シ||X
+太|fat; thick|タイ・タ|ふと|X
+島|island|トウ|しま|X
+末|end|マツ|すえ|X
+未|not yet|ミ||X
+矢|arrow|シ|や|X
+失|to lose|シツ|うしな|X
+刀|sword|トウ|かたな|X
+王|king|オウ||X
+玉|ball; jewel|ギョク|たま|X
+貝|shellfish|バイ|かい|X
+干|to dry|カン|ほ|X
+氷|ice|ヒョウ|こおり|X
+永|eternal|エイ|なが|X
+少|few; a little|ショウ|すく・すこ|N5
+内|within|ナイ|うち|X
+申|to report (humble)|シン|もう|X
+由|reason; cause|ユ・ユウ|よし|X
+比|to compare|ヒ|くら|X
+汽|steam|キ||X
+馬|horse|バ|うま|X
+交|to mix; cross|コウ|まじ|X
+京|capital city|キョウ||X
+親|parent|シン|おや|X
+反|against|ハン|そ|X
+取|to take|シュ|と|X
+良|good|リョウ|よ|X
+米|rice|ベイ|こめ|X
+晴|clear weather|セイ|は|X
+止|to stop|シ|と|X
+区|ward; district|ク||X
 `;
+// Sets N5 and N4 are practised. Set X kanji only ever appear as look-alike extras.
 const KANJI = RAW.trim().split("\n").map(l => {
   const [k, m, on, kun, lv] = l.split("|");
   return { k, m, on, kun, lv };
@@ -468,8 +512,16 @@ const BY_K = Object.fromEntries(KANJI.map(x => [x.k, x]));
 const LOOKALIKES = [
   // Closest pairs: these are offered first.
   "木本", "人入", "大犬", "大天", "午牛", "千干", "日目", "白百", "右石", "左右", "土上", "小少",
-  "間聞", "母毎", "王玉", "九力", "夕多", "日月", "目見", "休体", "住往", "読語", "待持", "近遠",
+  "間聞", "母毎", "王玉", "九力", "夕多", "日月", "目見", "休体", "読語", "待持", "近遠",
+  "土士", "天夫", "大太", "犬太", "未末", "木未", "本末", "矢失", "刀力", "見貝", "目自", "白自",
+  "王主", "鳥島", "水氷", "氷永", "門問", "問間", "開閉", "門開", "待特", "持特", "字学", "子字",
+  "万方", "住主", "入八", "四西", "今会", "話語", "書昼", "買売", "毎海", "持時", "広店", "暗音",
+  "楽薬", "東車", "東重", "目日", "千午", "干千", "力刀",
+  "円内", "年午", "分刀", "中申", "由田", "北比", "気汽", "駅馬", "校交", "父交", "高京", "新親",
+  "友反", "耳取", "足走", "食良", "食飲", "来米", "青晴", "歩止", "歩少", "医区", "勉力",
   // Wider families: similar shapes or a shared part.
+  "門問間聞開閉", "自白目百", "王玉主", "土士上", "大太犬天夫", "未末木本", "矢失知", "刀力九",
+  "中申由田", "友右左", "家字安", "見貝買", "水氷永", "干千午十", "鳥島", "持待特時", "字学子", "万方", "住主体",
   "木本休体", "木村休", "人入八", "大天犬", "午牛千十", "半千十", "手千午",
   "日目白百", "田口日目", "国口田", "田男町画", "男力", "思心田",
   "右左石", "右名古口", "夕多名外", "夜外夕", "今会金", "答会今",
