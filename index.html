@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>[hidden]{display:none!important} img{max-width:100%}</style>
+</head>
+<body>
+<title>Kanji Shuffle</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Klee+One:wght@600&family=Noto+Sans+JP:wght@500&family=Noto+Serif+JP:wght@600&display=swap">
+<style>
+/* Layout: one working screen. Score strip on top, two columns (English words | kanji grid), big feedback bar, settings and review below. */
+:root {
+  --bg: #F3F4F8;
+  --surface: #FFFFFF;
+  --fg: #0D1020;
+  --muted: #3D4260;
+  --line: #1B2040;
+  --accent: #22379A;      /* aizome indigo */
+  --accent-tint: #DCE2FF;
+  --good: #0A6B39;
+  --good-tint: #D5F2E1;
+  --bad: #A8141C;
+  --bad-tint: #FBDCDC;
+  --focus: #C25E00;
+
+  --font-ui: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-kanji: "Klee One", "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+
+  --kj-size: 112px;
+  --en-size: 28px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C0E18; --surface: #171A28; --fg: #F4F5FB; --muted: #C3C7DE; --line: #C9CEEA;
+    --accent: #A9B9FF; --accent-tint: #283364; --good: #6BE09C; --good-tint: #12392A;
+    --bad: #FF8A8A; --bad-tint: #4A1A1F; --focus: #FFB45C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C0E18; --surface: #171A28; --fg: #F4F5FB; --muted: #C3C7DE; --line: #C9CEEA;
+  --accent: #A9B9FF; --accent-tint: #283364; --good: #6BE09C; --good-tint: #12392A;
+  --bad: #FF8A8A; --bad-tint: #4A1A1F; --focus: #FFB45C; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-ui); font-size: 20px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+:focus-visible { outline: 5px solid var(--focus); outline-offset: 3px; }
+
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+h1 { margin: 0; font-size: 34px; letter-spacing: 0.01em; display: flex; align-items: baseline; gap: 12px; text-wrap: balance; }
+h1 .jp { font-family: var(--font-kanji); font-size: 40px; color: var(--accent); }
+.score { display: flex; flex-wrap: wrap; gap: 10px; }
+.stat { background: var(--surface); border: 2px solid var(--line); border-radius: 10px; padding: 6px 14px; display: flex; gap: 8px; align-items: baseline; font-variant-numeric: tabular-nums; }
+.stat b { font-size: 26px; }
+.stat span { font-size: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+.instructions { margin: 0 0 16px; color: var(--muted); font-size: 19px; max-width: 62ch; }
+.howto summary { font-size: 20px; padding: 10px 0; }
+.howto[open] summary { margin-bottom: 10px; }
+
+.board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 20px; align-items: start; }
+.col h2 { margin: 0 0 10px; font-size: 17px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.en-list { display: flex; flex-direction: column; gap: 12px; }
+.kj-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--kj-size) * 1.3)), 1fr)); }
+
+.card {
+  position: relative; font: inherit; color: var(--fg); background: var(--surface);
+  border: 3px solid var(--line); border-radius: 14px; cursor: pointer;
+  transition: background-color .15s, border-color .15s, transform .15s;
+}
+.card:hover { background: var(--accent-tint); }
+.card:active { transform: translateY(1px); }
+.card .key {
+  position: absolute; top: 6px; left: 8px; font-family: var(--font-ui); font-size: 16px; font-weight: 700;
+  color: var(--muted); line-height: 1;
+}
+.en { min-height: calc(var(--en-size) * 2.4); padding: 14px 16px 14px 40px; text-align: left; font-size: var(--en-size); font-weight: 700; line-height: 1.2; overflow-wrap: anywhere; }
+.kj { aspect-ratio: 1 / 1; max-width: 100%; display: grid; place-items: center; font-family: var(--font-kanji); font-size: var(--kj-size); line-height: 1; padding: 8px; }
+.kj .glyph { display: block; transform: translateY(0.02em); }
+
+.card[aria-pressed="true"] { background: var(--accent-tint); border-color: var(--accent); border-width: 6px; }
+.card[aria-pressed="true"]::after {
+  content: "Selected"; position: absolute; right: 8px; top: 6px; font-family: var(--font-ui);
+  font-size: 15px; font-weight: 700; color: var(--accent); line-height: 1;
+}
+.card.is-good { background: var(--good-tint); border-color: var(--good); border-width: 6px; }
+.card.is-good::after { content: "✓ Correct"; color: var(--good); position: absolute; right: 8px; top: 6px; font: 700 15px/1 var(--font-ui); }
+.card.is-bad { background: var(--bad-tint); border-color: var(--bad); border-width: 6px; border-style: dashed; }
+.card.is-bad::after { content: "✗ Your pick"; color: var(--bad); position: absolute; right: 8px; top: 6px; font: 700 15px/1 var(--font-ui); }
+.card.is-answer { border-color: var(--good); border-width: 6px; }
+.card.is-answer::after { content: "✓ Answer"; color: var(--good); position: absolute; right: 8px; top: 6px; font: 700 15px/1 var(--font-ui); }
+.board.locked .card { cursor: default; }
+.board.fade .card { animation: pop .28s ease-out; }
+@keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+
+.feedback {
+  min-height: 92px; background: var(--surface); border: 3px solid var(--line); border-radius: 14px;
+  padding: 14px 18px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 24px;
+}
+.feedback.good { border-color: var(--good); background: var(--good-tint); }
+.feedback.bad { border-color: var(--bad); background: var(--bad-tint); }
+.feedback .big { font-family: var(--font-kanji); font-size: calc(var(--kj-size) * 0.6); line-height: 1; }
+.feedback .read { font-family: var(--font-kanji); }
+.feedback .txt { min-width: 0; flex: 1 1 260px; }
+.feedback .txt strong { display: block; }
+.feedback .next { display: block; margin-top: 6px; font-size: 18px; color: var(--muted); }
+.feedback { cursor: pointer; }
+
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 20px; align-items: start; }
+details { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 0 18px; }
+summary { cursor: pointer; font-size: 24px; font-weight: 700; padding: 14px 0; }
+details[open] summary { border-bottom: 2px solid var(--line); margin-bottom: 14px; }
+.settings { display: flex; flex-direction: column; gap: 18px; padding-bottom: 18px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field > label, .field > .lbl { font-weight: 700; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; }
+input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
+.seg label, .chk label {
+  display: inline-flex; align-items: center; gap: 10px; border: 2px solid var(--line); border-radius: 10px;
+  padding: 8px 14px; cursor: pointer; background: var(--bg);
+}
+.seg input, .chk input { width: 24px; height: 24px; accent-color: var(--accent); margin: 0; }
+.seg label:has(input:checked), .chk label:has(input:checked) { background: var(--accent-tint); border-color: var(--accent); }
+.hint { font-size: 17px; color: var(--muted); margin: 0; }
+
+.btn { font: 700 20px var(--font-ui); color: var(--fg); background: var(--bg); border: 2px solid var(--line); border-radius: 10px; padding: 10px 16px; cursor: pointer; }
+.btn:hover { background: var(--accent-tint); }
+.btn.danger { border-color: var(--bad); color: var(--bad); }
+
+.review { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); padding-bottom: 18px; }
+.chip { border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; gap: 12px; align-items: center; background: var(--bg); }
+.chip .g { font-family: var(--font-kanji); font-size: 64px; line-height: 1; }
+.chip .m { font-weight: 700; }
+.chip .r { font-family: var(--font-kanji); font-size: 17px; color: var(--muted); }
+.chip .c { font-size: 15px; color: var(--bad); }
+.empty { color: var(--muted); margin: 0 0 18px; }
+.confirm { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 560px) {
+  body { font-size: 18px; }
+  .board { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .en { padding-left: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .board.fade .card { animation: none; }
+  .card { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1><span class="jp" lang="ja">漢字</span> Kanji Shuffle</h1>
+    <div class="score" aria-label="Score">
+      <div class="stat"><b id="sStreak">0</b><span>streak</span></div>
+      <div class="stat"><b id="sRight">0</b><span>right</span></div>
+      <div class="stat"><b id="sTotal">0</b><span>tries</span></div>
+      <div class="stat"><b id="sBest">0</b><span>best</span></div>
+    </div>
+  </header>
+
+  <details class="howto" id="howto" open>
+    <summary>How to play</summary>
+    <p class="instructions">Pick an English word, then the kanji that means it. After every guess the word you answered is replaced by a new one, the kanji reshuffle, and the spare kanji change, so you have to know each one. Keyboard: number keys pick a word, letter keys pick a kanji.</p>
+  </details>
+
+  <section class="board" id="board" aria-label="Matching board">
+    <div class="col">
+      <h2 id="enHead">English</h2>
+      <div class="en-list" id="enList" role="group" aria-labelledby="enHead"></div>
+    </div>
+    <div class="col">
+      <h2 id="kjHead">Kanji</h2>
+      <div class="kj-grid" id="kjGrid" role="group" aria-labelledby="kjHead"></div>
+    </div>
+  </section>
+
+  <div class="feedback" id="feedback" aria-live="polite">
+    <div class="txt">Choose a word and a kanji to start.</div>
+  </div>
+
+  <div class="panels">
+    <details id="setDetails" open>
+      <summary>Settings</summary>
+      <div class="settings">
+        <div class="field">
+          <label for="kjSize">Kanji size: <span id="kjSizeVal">112</span> px</label>
+          <input type="range" id="kjSize" min="56" max="260" step="4" value="112">
+        </div>
+        <div class="field">
+          <label for="enSize">Word size: <span id="enSizeVal">28</span> px</label>
+          <input type="range" id="enSize" min="18" max="56" step="2" value="28">
+        </div>
+        <div class="field">
+          <span class="lbl" id="fontLbl">Kanji style</span>
+          <div class="row seg" role="radiogroup" aria-labelledby="fontLbl">
+            <label><input type="radio" name="font" id="fontKlee" value="klee" checked> <span>Textbook <span lang="ja" style="font-family:'Klee One',sans-serif">字</span></span></label>
+            <label><input type="radio" name="font" id="fontSans" value="sans"> <span>Gothic <span lang="ja" style="font-family:'Noto Sans JP',sans-serif">字</span></span></label>
+            <label><input type="radio" name="font" id="fontSerif" value="serif"> <span>Mincho <span lang="ja" style="font-family:'Noto Serif JP',serif">字</span></span></label>
+          </div>
+          <p class="hint">Textbook style shows strokes the way you would write them by hand.</p>
+        </div>
+        <div class="field">
+          <span class="lbl" id="pairsLbl">Words on the board</span>
+          <div class="row seg" role="radiogroup" aria-labelledby="pairsLbl">
+            <label><input type="radio" name="pairs" id="pairs2" value="2"> 2</label>
+            <label><input type="radio" name="pairs" id="pairs3" value="3"> 3</label>
+            <label><input type="radio" name="pairs" id="pairs4" value="4" checked> 4</label>
+            <label><input type="radio" name="pairs" id="pairs5" value="5"> 5</label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl" id="extraLbl">Extra kanji with no match</span>
+          <div class="row seg" role="radiogroup" aria-labelledby="extraLbl">
+            <label><input type="radio" name="extra" id="extra0" value="0"> 0</label>
+            <label><input type="radio" name="extra" id="extra1" value="1"> 1</label>
+            <label><input type="radio" name="extra" id="extra2" value="2" checked> 2</label>
+            <label><input type="radio" name="extra" id="extra4" value="4"> 4</label>
+          </div>
+          <p class="hint">Extra kanji stop you from finding the last answer by elimination.</p>
+          <div class="chk"><label><input type="checkbox" id="alike" checked> Use look-alike kanji as the extras (like 木 and 本, 人 and 入)</label></div>
+        </div>
+        <div class="field">
+          <span class="lbl" id="lvlLbl">Kanji sets</span>
+          <div class="row chk" role="group" aria-labelledby="lvlLbl">
+            <label><input type="checkbox" id="lvlN5" value="N5" checked> JLPT N5 (100)</label>
+            <label><input type="checkbox" id="lvlN4" value="N4"> JLPT N4 starter (60)</label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl" id="paceLbl">After a guess, move on</span>
+          <div class="row seg" role="radiogroup" aria-labelledby="paceLbl">
+            <label><input type="radio" name="wait" id="wait0" value="0" checked> When I tap</label>
+            <label><input type="radio" name="wait" id="wait2" value="2000"> After 2 s</label>
+            <label><input type="radio" name="wait" id="wait4" value="4000"> After 4 s</label>
+          </div>
+          <p class="hint">The board never changes under your finger. Your tap moves to the next round and is not counted as a guess.</p>
+        </div>
+        <div class="field chk">
+          <label><input type="checkbox" id="speak"> Say the Japanese reading aloud after each guess</label>
+        </div>
+      </div>
+    </details>
+
+    <details id="revDetails" open>
+      <summary>Needs practice</summary>
+      <div id="review"></div>
+      <div class="confirm" id="resetArea" style="padding-bottom:18px">
+        <button class="btn danger" id="resetBtn" type="button">Reset progress</button>
+      </div>
+    </details>
+  </div>
+  <div class="sr" id="srStatus" aria-live="assertive"></div>
+</div>
+
+<script>
+// kanji | meaning | on'yomi | kun'yomi | set
+const RAW = `
+一|one|イチ|ひと|N5
+二|two|ニ|ふた|N5
+三|three|サン|みっ|N5
+四|four|シ|よん・よ|N5
+五|five|ゴ|いつ|N5
+六|six|ロク|むっ|N5
+七|seven|シチ|なな|N5
+八|eight|ハチ|やっ|N5
+九|nine|キュウ・ク|ここの|N5
+十|ten|ジュウ|とお|N5
+百|hundred|ヒャク||N5
+千|thousand|セン|ち|N5
+万|ten thousand|マン・バン||N5
+円|yen; circle|エン|まる|N5
+日|day; sun|ニチ・ジツ|ひ・か|N5
+月|month; moon|ゲツ・ガツ|つき|N5
+火|fire|カ|ひ|N5
+水|water|スイ|みず|N5
+木|tree|モク・ボク|き|N5
+金|gold; money|キン|かね|N5
+土|soil; earth|ド・ト|つち|N5
+曜|day of the week|ヨウ||N5
+本|book; origin|ホン|もと|N5
+人|person|ジン・ニン|ひと|N5
+今|now|コン|いま|N5
+年|year|ネン|とし|N5
+時|time; hour|ジ|とき|N5
+分|minute; to divide|ブン・フン|わ|N5
+半|half|ハン|なか|N5
+午|noon|ゴ||N5
+前|before; front|ゼン|まえ|N5
+後|after; behind|ゴ・コウ|あと・うし|N5
+上|up; above|ジョウ|うえ・あ|N5
+下|down; below|カ・ゲ|した・さ|N5
+左|left|サ|ひだり|N5
+右|right (side)|ウ・ユウ|みぎ|N5
+中|middle; inside|チュウ|なか|N5
+外|outside|ガイ・ゲ|そと|N5
+東|east|トウ|ひがし|N5
+西|west|セイ・サイ|にし|N5
+南|south|ナン|みなみ|N5
+北|north|ホク|きた|N5
+山|mountain|サン|やま|N5
+川|river|セン|かわ|N5
+天|heaven|テン|あめ|N5
+気|spirit; energy|キ||N5
+雨|rain|ウ|あめ|N5
+電|electricity|デン||N5
+車|car; vehicle|シャ|くるま|N5
+駅|train station|エキ||N5
+道|road; way|ドウ|みち|N5
+国|country|コク|くに|N5
+校|school|コウ||N5
+学|study; learning|ガク|まな|N5
+生|life; birth|セイ・ショウ|い・う|N5
+先|ahead; previous|セン|さき|N5
+大|big|ダイ・タイ|おお|N5
+小|small|ショウ|ちい・こ|N5
+高|tall; expensive|コウ|たか|N5
+安|cheap; calm|アン|やす|N5
+長|long; chief|チョウ|なが|N5
+新|new|シン|あたら|N5
+古|old|コ|ふる|N5
+白|white|ハク|しろ|N5
+父|father|フ|ちち|N5
+母|mother|ボ|はは|N5
+子|child|シ・ス|こ|N5
+女|woman|ジョ・ニョ|おんな|N5
+男|man|ダン・ナン|おとこ|N5
+友|friend|ユウ|とも|N5
+名|name|メイ・ミョウ|な|N5
+口|mouth|コウ・ク|くち|N5
+目|eye|モク|め|N5
+耳|ear|ジ|みみ|N5
+手|hand|シュ|て|N5
+足|foot; leg|ソク|あし|N5
+見|to see|ケン|み|N5
+聞|to hear|ブン・モン|き|N5
+言|to say|ゲン・ゴン|い|N5
+話|to talk|ワ|はな|N5
+語|language; word|ゴ|かた|N5
+読|to read|ドク|よ|N5
+書|to write|ショ|か|N5
+食|to eat|ショク|た|N5
+飲|to drink|イン|の|N5
+行|to go|コウ・ギョウ|い・おこな|N5
+来|to come|ライ|く|N5
+出|to exit|シュツ|で・だ|N5
+入|to enter|ニュウ|はい・い|N5
+休|to rest|キュウ|やす|N5
+立|to stand|リツ|た|N5
+会|to meet|カイ|あ|N5
+買|to buy|バイ|か|N5
+何|what|カ|なに・なん|N5
+毎|every|マイ||N5
+週|week|シュウ||N5
+店|shop|テン|みせ|N5
+花|flower|カ|はな|N5
+魚|fish|ギョ|さかな|N5
+犬|dog|ケン|いぬ|N5
+空|sky; empty|クウ|そら|N5
+春|spring (season)|シュン|はる|N4
+夏|summer|カ|なつ|N4
+秋|autumn|シュウ|あき|N4
+冬|winter|トウ|ふゆ|N4
+朝|morning|チョウ|あさ|N4
+昼|daytime|チュウ|ひる|N4
+夜|night|ヤ|よる|N4
+夕|evening|セキ|ゆう|N4
+青|blue|セイ|あお|N4
+赤|red|セキ|あか|N4
+黒|black|コク|くろ|N4
+色|colour|ショク|いろ|N4
+肉|meat|ニク||N4
+茶|tea|チャ・サ||N4
+牛|cow|ギュウ|うし|N4
+鳥|bird|チョウ|とり|N4
+海|sea|カイ|うみ|N4
+家|house; home|カ|いえ|N4
+町|town|チョウ|まち|N4
+村|village|ソン|むら|N4
+田|rice field|デン|た|N4
+石|stone|セキ|いし|N4
+力|power|リョク|ちから|N4
+体|body|タイ|からだ|N4
+心|heart; mind|シン|こころ|N4
+顔|face|ガン|かお|N4
+音|sound|オン|おと|N4
+楽|fun; music|ガク・ラク|たの|N4
+歌|song|カ|うた|N4
+画|picture|ガ||N4
+走|to run|ソウ|はし|N4
+歩|to walk|ホ|ある|N4
+知|to know|チ|し|N4
+思|to think|シ|おも|N4
+待|to wait|タイ|ま|N4
+持|to hold|ジ|も|N4
+使|to use|シ|つか|N4
+作|to make|サク|つく|N4
+早|early|ソウ|はや|N4
+近|near|キン|ちか|N4
+遠|far|エン|とお|N4
+重|heavy|ジュウ|おも|N4
+軽|light (not heavy)|ケイ|かる|N4
+明|bright|メイ|あか|N4
+暗|dark|アン|くら|N4
+病|illness|ビョウ|やまい|N4
+医|doctor; medical|イ||N4
+薬|medicine|ヤク|くすり|N4
+写|to copy; photo|シャ|うつ|N4
+真|true|シン|ま|N4
+売|to sell|バイ|う|N4
+勉|effort|ベン||N4
+強|strong|キョウ|つよ|N4
+弱|weak|ジャク|よわ|N4
+広|wide|コウ|ひろ|N4
+答|answer|トウ|こた|N4
+`;
+const KANJI = RAW.trim().split("\n").map(l => {
+  const [k, m, on, kun, lv] = l.split("|");
+  return { k, m, on, kun, lv };
+});
+const BY_K = Object.fromEntries(KANJI.map(x => [x.k, x]));
+// Groups of kanji that are easy to mix up: similar shapes or a shared part.
+const LOOKALIKES = [
+  "木本休体", "木村休", "人入八", "大天犬", "午牛千十", "半千十", "手千午",
+  "日目白百", "田口日目", "国口田", "田男町画", "男力", "思心田",
+  "右左石", "右名古口", "夕多名外", "夜外夕", "今会金", "答会今",
+  "見買目", "言話語読", "売買読", "間聞", "母毎海", "東車重", "軽車重",
+  "雨電", "小少", "先生", "山出", "川三", "明時暗昼早曜", "花茶薬", "楽薬",
+  "行待後", "持待時", "使体作休何", "鳥魚黒", "走赤", "夏顔", "秋火",
+  "広店", "強弱", "近遠道週", "真目", "立音", "女安", "子学", "社土上",
+  "歌飲", "上下", "万方", "円内", "王玉", "字学", "一二三", "月明朝肉", "四西", "五七", "九力", "白自", "冬夏", "火秋"
+];
+const SIMILAR = {};
+for (const g of LOOKALIKES) {
+  const ks = [...g].filter(k => BY_K[k]);
+  for (const a of ks) for (const b of ks) if (a !== b) (SIMILAR[a] = SIMILAR[a] || new Set()).add(b);
+}
+
+const store = {
+  get(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } },
+  set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+};
+const DEFAULTS = { kj: 112, en: 28, font: "klee", pairs: 4, extra: 2, levels: ["N5"], speak: false, wait: 0, alike: true };
+const settings = Object.assign({}, DEFAULTS, store.get("ks-settings", {}));
+const progress = Object.assign({ cards: {}, right: 0, total: 0, streak: 0, best: 0 }, store.get("ks-progress", {}));
+const FONTS = {
+  klee: '"Klee One", "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif',
+  sans: '"Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif',
+  serif: '"Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif'
+};
+const KEYS = "ABCDEFGHI";
+const WEIGHTS = [9, 5, 3, 2, 1.2, 0.6]; // by Leitner box; box 0 = recently missed
+
+const $ = id => document.getElementById(id);
+let state = { targets: [], decoys: [], enOrder: [], kjOrder: [], sel: { en: null, kj: null }, locked: false, turn: 0, retry: [], recent: [] };
+
+function pool() { return KANJI.filter(x => settings.levels.includes(x.lv)); }
+function box(k) { const c = progress.cards[k]; return c ? c.box : 1; }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function shuffleDifferent(a, prev) {
+  if (a.length < 2) return a.slice();
+  let out = shuffle(a);
+  for (let i = 0; i < 6 && out.join() === (prev || []).join(); i++) out = shuffle(a);
+  return out;
+}
+function weighted(list, w) {
+  const total = list.reduce((s, x) => s + w(x), 0);
+  let r = Math.random() * total;
+  for (const x of list) { r -= w(x); if (r <= 0) return x; }
+  return list[list.length - 1];
+}
+function pickTarget(exclude) {
+  const p = pool();
+  const due = state.retry.find(r => r.due <= state.turn && !exclude.has(r.k) && BY_K[r.k] && p.includes(BY_K[r.k]));
+  if (due) { state.retry = state.retry.filter(r => r !== due); return due.k; }
+  let cands = p.filter(x => !exclude.has(x.k) && !state.recent.includes(x.k));
+  if (!cands.length) cands = p.filter(x => !exclude.has(x.k));
+  if (!cands.length) return null;
+  return weighted(cands, x => WEIGHTS[box(x.k)]).k;
+}
+function pickDecoys(n, exclude) {
+  const out = [];
+  if (settings.alike) {
+    // Round-robin: give each word on the board a look-alike of its answer before doubling up.
+    const inPool = new Set(pool().map(x => x.k));
+    const lists = shuffle(state.targets).map(t => {
+      const sims = [...(SIMILAR[t] || [])].filter(k => !exclude.has(k));
+      const pooled = shuffle(sims.filter(k => inPool.has(k)));
+      return pooled.concat(shuffle(sims.filter(k => !inPool.has(k))));
+    });
+    let added = true;
+    while (out.length < n && added) {
+      added = false;
+      for (const l of lists) {
+        while (l.length && out.includes(l[0])) l.shift();
+        if (l.length && out.length < n) { out.push(l.shift()); added = true; }
+      }
+    }
+  }
+  const rest = shuffle(pool().filter(x => !exclude.has(x.k) && !out.includes(x.k)));
+  return out.concat(rest.slice(0, n - out.length).map(x => x.k));
+}
+function fillBoard() {
+  const ex = new Set(state.targets);
+  while (state.targets.length < settings.pairs) {
+    const k = pickTarget(ex);
+    if (!k) break;
+    state.targets.push(k); ex.add(k);
+  }
+  state.targets = state.targets.slice(0, settings.pairs);
+  state.decoys = pickDecoys(settings.extra, new Set([...state.targets, ...state.recent.slice(-1)]));
+  // English column keeps its order: a new word takes the answered word's slot.
+  const fresh = state.targets.filter(k => !state.enOrder.includes(k));
+  state.enOrder = state.enOrder.filter(k => state.targets.includes(k) || fresh.length).map(k => state.targets.includes(k) ? k : fresh.shift());
+  state.enOrder.push(...fresh);
+  state.enOrder = state.enOrder.filter(k => state.targets.includes(k));
+  state.kjOrder = shuffleDifferent([...state.targets, ...state.decoys], state.kjOrder);
+  state.sel = { en: null, kj: null };
+}
+function newBoard() { state.targets = []; state.enOrder = []; state.kjOrder = []; fillBoard(); render(true); }
+
+function render(animate) {
+  const enList = $("enList"), kjGrid = $("kjGrid");
+  enList.innerHTML = ""; kjGrid.innerHTML = "";
+  state.enOrder.forEach((k, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "card en"; b.dataset.k = k;
+    b.setAttribute("aria-pressed", state.sel.en === k ? "true" : "false");
+    b.innerHTML = `<span class="key" aria-hidden="true">${i + 1}</span><span class="word"></span>`;
+    b.querySelector(".word").textContent = BY_K[k].m;
+    b.setAttribute("aria-label", `${i + 1}: ${BY_K[k].m}`);
+    b.addEventListener("click", () => choose("en", k));
+    enList.appendChild(b);
+  });
+  state.kjOrder.forEach((k, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "card kj"; b.dataset.k = k;
+    b.setAttribute("aria-pressed", state.sel.kj === k ? "true" : "false");
+    b.innerHTML = `<span class="key" aria-hidden="true">${KEYS[i]}</span><span class="glyph" lang="ja"></span>`;
+    b.querySelector(".glyph").textContent = k;
+    b.setAttribute("aria-label", `${KEYS[i]}: ${k}`);
+    b.addEventListener("click", () => choose("kj", k));
+    kjGrid.appendChild(b);
+  });
+  const board = $("board");
+  board.classList.remove("fade");
+  if (animate) { void board.offsetWidth; board.classList.add("fade"); }
+}
+
+function choose(side, k) {
+  if (state.locked || Date.now() < state.readyAt) return;
+  state.sel[side] = state.sel[side] === k ? null : k;
+  document.querySelectorAll(side === "en" ? ".en" : ".kj").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === state.sel[side] ? "true" : "false"));
+  if (state.sel.en && state.sel.kj) guess(state.sel.en, state.sel.kj);
+}
+
+function readingText(x) { return [x.kun, x.on].filter(Boolean).join(" · "); }
+function guess(target, picked) {
+  state.locked = true; state.turn++;
+  const ok = target === picked;
+  const t = BY_K[target], p = BY_K[picked];
+  const c = progress.cards[target] || { box: 1, right: 0, wrong: 0 };
+  if (ok) { c.box = Math.min(5, c.box + 1); c.right++; progress.right++; progress.streak++; progress.best = Math.max(progress.best, progress.streak); }
+  else { c.box = 0; c.wrong++; progress.streak = 0; state.retry.push({ k: target, due: state.turn + 3 }); }
+  progress.cards[target] = c; progress.total++;
+  store.set("ks-progress", progress);
+  state.recent = [...state.recent, target].slice(-4);
+
+  document.querySelectorAll(".card").forEach(b => b.setAttribute("aria-pressed", "false"));
+  const enBtn = document.querySelector(`.en[data-k="${target}"]`);
+  const kjPicked = document.querySelector(`.kj[data-k="${picked}"]`);
+  const kjAns = document.querySelector(`.kj[data-k="${target}"]`);
+  if (ok) { enBtn.classList.add("is-good"); kjPicked.classList.add("is-good"); }
+  else { enBtn.classList.add("is-answer"); kjPicked.classList.add("is-bad"); kjAns.classList.add("is-answer"); }
+  $("board").classList.add("locked");
+
+  const fb = $("feedback");
+  fb.className = "feedback " + (ok ? "good" : "bad");
+  fb.innerHTML = "";
+  const big = document.createElement("span"); big.className = "big"; big.lang = "ja"; big.textContent = t.k;
+  const txt = document.createElement("div"); txt.className = "txt";
+  const head = document.createElement("strong");
+  head.textContent = ok ? `✓ Right. ${t.k} means “${t.m}”.` : `✗ ${t.k} means “${t.m}”. You picked ${p.k}, which means “${p.m}”.`;
+  const rd = document.createElement("span"); rd.className = "read"; rd.lang = "ja"; rd.textContent = readingText(t);
+  txt.append(head, rd);
+  fb.append(big, txt);
+  $("srStatus").textContent = head.textContent;
+
+  if (settings.speak && "speechSynthesis" in window) {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance((t.kun || t.on).split("・")[0]);
+      u.lang = "ja-JP"; u.rate = 0.8;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  updateScore(); renderReview();
+
+  const more = document.createElement("span"); more.className = "next";
+  more.textContent = "Tap any tile or press Enter to continue.";
+  txt.append(more);
+
+  let timer = null;
+  state.advance = () => {
+    if (!state.advance) return;
+    state.advance = null;
+    clearTimeout(timer);
+    state.targets = state.targets.filter(k => k !== target);
+    fillBoard();
+    state.locked = false;
+    state.readyAt = Date.now() + 400; // ignore a second, accidental tap right after the new board appears
+    $("board").classList.remove("locked");
+    render(true);
+  };
+  if (settings.wait > 0) timer = setTimeout(state.advance, settings.wait);
+}
+
+// While an answer is showing, a tap on the board only moves on; it never selects a tile.
+document.addEventListener("click", e => {
+  if (!state.locked || !state.advance) return;
+  if (!e.target.closest("#board, #feedback")) return;
+  e.preventDefault(); e.stopPropagation();
+  state.advance();
+}, true);
+
+function updateScore() {
+  $("sStreak").textContent = progress.streak; $("sRight").textContent = progress.right;
+  $("sTotal").textContent = progress.total; $("sBest").textContent = progress.best;
+}
+function renderReview() {
+  const el = $("review");
+  const list = Object.entries(progress.cards).filter(([k, c]) => c.wrong > 0 && c.box <= 1 && BY_K[k])
+    .sort((a, b) => b[1].wrong - a[1].wrong).slice(0, 12);
+  el.className = list.length ? "review" : "";
+  el.innerHTML = "";
+  if (!list.length) { el.innerHTML = '<p class="empty">Kanji you miss will collect here, with their meanings and readings. They also come back on the board sooner.</p>'; return; }
+  for (const [k, c] of list) {
+    const x = BY_K[k];
+    const d = document.createElement("div"); d.className = "chip";
+    d.innerHTML = `<span class="g" lang="ja"></span><div><div class="m"></div><div class="r" lang="ja"></div><div class="c"></div></div>`;
+    d.querySelector(".g").textContent = k;
+    d.querySelector(".m").textContent = x.m;
+    d.querySelector(".r").textContent = readingText(x);
+    d.querySelector(".c").textContent = `missed ${c.wrong}×`;
+    el.appendChild(d);
+  }
+}
+
+function applyVisual() {
+  const r = document.documentElement.style;
+  r.setProperty("--kj-size", settings.kj + "px");
+  r.setProperty("--en-size", settings.en + "px");
+  r.setProperty("--font-kanji", FONTS[settings.font] || FONTS.klee);
+  $("kjSizeVal").textContent = settings.kj; $("enSizeVal").textContent = settings.en;
+}
+function save() { store.set("ks-settings", settings); }
+
+function initControls() {
+  $("kjSize").value = settings.kj; $("enSize").value = settings.en;
+  $("kjSize").addEventListener("input", e => { settings.kj = +e.target.value; applyVisual(); save(); });
+  $("enSize").addEventListener("input", e => { settings.en = +e.target.value; applyVisual(); save(); });
+  const radios = (name, key, num, rebuild) => {
+    document.querySelectorAll(`input[name="${name}"]`).forEach(inp => {
+      inp.checked = String(settings[key]) === inp.value;
+      inp.addEventListener("change", () => {
+        settings[key] = num ? +inp.value : inp.value; save(); applyVisual();
+        if (rebuild && !state.locked) newBoard();
+      });
+    });
+  };
+  radios("font", "font", false, false);
+  radios("pairs", "pairs", true, true);
+  radios("extra", "extra", true, true);
+  radios("wait", "wait", true, false);
+  ["lvlN5", "lvlN4"].forEach(id => {
+    const inp = $(id);
+    inp.checked = settings.levels.includes(inp.value);
+    inp.addEventListener("change", () => {
+      const lv = ["lvlN5", "lvlN4"].filter(i => $(i).checked).map(i => $(i).value);
+      if (!lv.length) { inp.checked = true; return; }
+      settings.levels = lv; save(); if (!state.locked) newBoard();
+    });
+  });
+  $("alike").checked = settings.alike;
+  $("alike").addEventListener("change", e => { settings.alike = e.target.checked; save(); if (!state.locked) newBoard(); });
+  $("speak").checked = settings.speak;
+  $("speak").addEventListener("change", e => { settings.speak = e.target.checked; save(); });
+
+  const area = $("resetArea");
+  function showReset() {
+    area.innerHTML = '<button class="btn danger" id="resetBtn" type="button">Reset progress</button>';
+    $("resetBtn").addEventListener("click", () => {
+      area.innerHTML = '<span>Clear your score and practice list?</span><button class="btn danger" type="button" id="resetYes">Yes, clear it</button><button class="btn" type="button" id="resetNo">Keep it</button>';
+      $("resetYes").addEventListener("click", () => {
+        Object.assign(progress, { cards: {}, right: 0, total: 0, streak: 0, best: 0 });
+        state.retry = []; store.set("ks-progress", progress); updateScore(); renderReview(); showReset();
+      });
+      $("resetNo").addEventListener("click", showReset);
+      $("resetYes").focus();
+    });
+  }
+  showReset();
+}
+
+document.addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+  if (state.locked && state.advance) {
+    if (e.key === "Enter" || e.key === " " || /^[0-9a-z]$/i.test(e.key)) { e.preventDefault(); state.advance(); }
+    return;
+  }
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= state.enOrder.length) { e.preventDefault(); choose("en", state.enOrder[n - 1]); return; }
+  const i = KEYS.indexOf(e.key.toUpperCase());
+  if (e.key.length === 1 && i >= 0 && i < state.kjOrder.length) { e.preventDefault(); choose("kj", state.kjOrder[i]); }
+});
+
+(function () {
+  const h = $("howto");
+  if (store.get("ks-howto-open", true) === false) h.open = false;
+  h.addEventListener("toggle", () => store.set("ks-howto-open", h.open));
+})();
+applyVisual();
+initControls();
+updateScore();
+renderReview();
+newBoard();
+</script>
+
+</body>
+</html>
