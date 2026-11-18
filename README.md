@@ -13,3 +13,5 @@ A large-print kanji matching drill. Pick an English word, then the kanji that me
 ## Run it
 
 It's a single file with no build step: open `index.html` in a browser.
+
+Live version: https://ramakocherlakota.github.io/kanji-app/ (served by GitHub Pages from `main`).
