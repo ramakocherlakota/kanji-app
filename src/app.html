@@ -60,6 +60,7 @@ h1 .jp { font-family: var(--font-kanji); font-size: 40px; color: var(--accent); 
 }
 .controls .btn-big { align-self: auto; }
 .controls .btn { min-height: 56px; }
+.modetag { background: var(--accent-tint); color: var(--fg); border: 3px solid var(--accent); border-radius: 12px; padding: 6px 14px; font-size: 24px; }
 .history { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-variant-numeric: tabular-nums; }
 .history .h-lbl { font-weight: 700; font-size: 18px; color: var(--muted); margin-right: 4px; }
 .history .h { background: var(--surface); border: 2px solid var(--line); border-radius: 10px; padding: 4px 12px; font-size: 20px; }
@@ -178,13 +179,6 @@ input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
   <header>
     <h1><span class="jp" lang="ja">漢字</span> Kanji Shuffle</h1>
     <div class="controls">
-      <label for="modeSel">Mode</label>
-      <select id="modeSel">
-        <option value="en2kj">Meaning → Kanji</option>
-        <option value="kj2en">Kanji → Meaning</option>
-        <option value="kj2kana">Kanji → Reading</option>
-        <option value="kana2kj">Reading → Kanji</option>
-      </select>
       <button class="btn-big" type="button" id="startBtn">Start</button>
       <button class="btn" type="button" id="resetRounds">Reset rounds</button>
     </div>
@@ -194,10 +188,11 @@ input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
 
   <details class="howto" id="howto" open>
     <summary>How to play</summary>
-    <p class="instructions">Choose a mode and press Start. Each round has a set of words, shown a few at a time. Pick one on the left, then its match on the right. As soon as you pick both, the next word takes its place and the choices reshuffle. Every answer is listed under the board. A word you miss comes back later in the same round, so the round ends only when you have matched every word. Keyboard: number keys pick on the left, letter keys pick on the right.</p>
+    <p class="instructions">Each round uses one of four modes, picked at random: Meaning → Kanji, Kanji → Meaning, Kanji → Reading or Reading → Kanji. Press Start for a new round. Each round has a set of words, shown a few at a time. Pick one on the left, then its match on the right. As soon as you pick both, the next word takes its place and the choices reshuffle. Every answer is listed under the board. A word you miss comes back later in the same round, so the round ends only when you have matched every word. Keyboard: number keys pick on the left, letter keys pick on the right.</p>
   </details>
 
   <div class="roundbar" id="roundbar">
+    <span class="modetag" id="modeTag"></span>
     <span id="roundText">Round 1</span>
     <div class="pips" id="pips" role="img"></div>
   </div>
@@ -266,14 +261,14 @@ input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
           </div>
         </div>
         <div class="field">
-          <span class="lbl" id="extraLbl">Extra choices with no match <span id="extraMode" style="font-weight:400"></span></span>
+          <span class="lbl" id="extraLbl">Extra choices with no match</span>
           <div class="row seg" role="radiogroup" aria-labelledby="extraLbl">
             <label><input type="radio" name="extra" id="extra0" value="0"> 0</label>
             <label><input type="radio" name="extra" id="extra2" value="2"> 2</label>
             <label><input type="radio" name="extra" id="extra4" value="4"> 4</label>
             <label><input type="radio" name="extra" id="extra6" value="6"> 6</label>
           </div>
-          <p class="hint">Extra choices stop you from finding the last answer by elimination. Each mode remembers its own number. Changes apply when you press Start.</p>
+          <p class="hint">Extra choices stop you from finding the last answer by elimination. Changes apply when you press Start.</p>
           <div class="chk"><label><input type="checkbox" id="alike"> Use look-alike kanji for the extras (like 木 and 本, 人 and 入)</label></div>
         </div>
         <div class="field">
@@ -558,12 +553,11 @@ const store = {
 };
 const DEFAULTS = {
   kj: 112, en: 28, font: "klee", mode: "en2kj", roundSize: 10, pairs: 4,
-  extraBy: { en2kj: 2, kj2en: 4, kj2kana: 4, kana2kj: 2 },
+  extra: 4,
   alike: true, levels: ["N5"], speak: false
 };
 const saved = store.get("ks-settings", {});
 const settings = Object.assign({}, DEFAULTS, saved);
-settings.extraBy = Object.assign({}, DEFAULTS.extraBy, saved.extraBy || {});
 if (!MODES[settings.mode]) settings.mode = "en2kj";
 
 const progress = Object.assign({ cards: {}, rounds: 0, history: [] }, store.get("ks-progress", {}));
@@ -588,7 +582,7 @@ let state = {
 };
 
 function mode() { return MODES[settings.mode]; }
-function extra() { return settings.extraBy[settings.mode]; }
+function extra() { return settings.extra; }
 function pool() { return KANJI.filter(x => settings.levels.includes(x.lv)); }
 function card(k) { return progress.cards[settings.mode + "|" + k]; }
 function box(k) { const c = card(k); return c ? c.box : 1; }
@@ -614,6 +608,10 @@ function pickRound(n) {
   return out;
 }
 function startRound() {
+  // Pick this round's mode at random, never the same one twice in a row.
+  const others = Object.keys(MODES).filter(k => k !== settings.mode);
+  settings.mode = others[Math.floor(Math.random() * others.length)];
+  save();
   const words = pickRound(settings.roundSize);
   state.round = { num: progress.rounds + 1, words, queue: words.slice(), cleared: new Set(), missed: new Set(), mistakes: 0 };
   state.targets = []; state.pOrder = []; state.cOrder = [];
@@ -623,7 +621,7 @@ function startRound() {
 }
 function renderRoundBar() {
   const r = state.round;
-  $("roundText").textContent = `Round ${r.num} · ${mode().name} · ${r.cleared.size} of ${r.words.length} matched · ${r.mistakes} ${r.mistakes === 1 ? "mistake" : "mistakes"}`;
+  $("roundText").textContent = `Round ${r.num} · ${r.cleared.size} of ${r.words.length} matched · ${r.mistakes} ${r.mistakes === 1 ? "mistake" : "mistakes"}`;
   const pips = $("pips"); pips.innerHTML = "";
   for (const k of r.words) {
     const d = document.createElement("span");
@@ -660,8 +658,9 @@ function renderHistory() {
   for (const h of progress.history.slice(-30)) {
     const d = document.createElement("span");
     d.className = "h" + (h.right === h.total ? " perfect" : "");
-    d.title = MODES[h.mode] ? MODES[h.mode].name : "";
-    d.innerHTML = `Round ${h.n}: <b>${h.right}</b>/${h.total}`;
+    d.textContent = `Round ${h.n} (${MODES[h.mode] ? MODES[h.mode].name : "?"}): `;
+    const s = document.createElement("b"); s.textContent = h.right;
+    d.append(s, `/${h.total}`);
     el.appendChild(d);
   }
 }
@@ -732,9 +731,8 @@ function applyMode() {
   $("pHead").textContent = m.pHead; $("cHead").textContent = m.cHead;
   $("pList").className = listClass(m.prompt, false);
   $("cList").className = "choices " + listClass(m.choice, true);
-  applyModeLabel();
+  $("modeTag").textContent = m.name;
 }
-function applyModeLabel() { $("extraMode").textContent = `(for ${MODES[settings.mode].name})`; }
 function render(animate) {
   const m = mode();
   const pList = $("pList"), cList = $("cList");
@@ -862,8 +860,6 @@ function initControls() {
       });
     });
   };
-  $("modeSel").value = settings.mode;
-  $("modeSel").addEventListener("change", e => { settings.mode = e.target.value; save(); syncExtraRadios(); applyModeLabel(); });
   $("startBtn").addEventListener("click", startRound);
   // Two-step so a stray tap next to Start doesn't wipe the scores.
   let resetTimer = null;
@@ -882,7 +878,7 @@ function initControls() {
   radios("pairs", "pairs", true);
   syncExtraRadios();
   document.querySelectorAll('input[name="extra"]').forEach(inp => inp.addEventListener("change", () => {
-    settings.extraBy[settings.mode] = +inp.value; save();
+    settings.extra = +inp.value; save();
   }));
   ["lvlN5", "lvlN4"].forEach(id => {
     const inp = $(id);
