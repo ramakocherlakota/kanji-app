@@ -11,7 +11,7 @@ A large-print kanji matching drill. Pick an English word, then the kanji that me
 - Adjustable kanji and word size, three kanji typefaces, light/dark themes, keyboard play
   (number keys pick a word, letter keys pick a kanji), optional spoken readings.
 - Missed kanji come back sooner and collect in a "Needs practice" list (saved in your browser).
-- 103 JLPT N5 kanji plus 64 N4 starter kanji, and 33 extra kanji used only as look-alike distractors.
+- 103 JLPT N5 kanji plus 160 JLPT N4 kanji, and 30 extra kanji used only as look-alike distractors.
 
 ## Run it
 

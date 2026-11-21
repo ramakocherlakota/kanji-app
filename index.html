@@ -283,7 +283,7 @@ input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
           <span class="lbl" id="lvlLbl">Kanji sets</span>
           <div class="row chk" role="group" aria-labelledby="lvlLbl">
             <label><input type="checkbox" id="lvlN5" value="N5"> <span>JLPT N5 (<span id="cntN5"></span>)</span></label>
-            <label><input type="checkbox" id="lvlN4" value="N4"> <span>JLPT N4 starter (<span id="cntN4"></span>)</span></label>
+            <label><input type="checkbox" id="lvlN4" value="N4"> <span>JLPT N4 (<span id="cntN4"></span>)</span></label>
           </div>
         </div>
         <div class="field chk">
@@ -476,7 +476,7 @@ const RAW = `
 士|samurai; scholar|シ||X
 太|fat; thick|タイ・タ|ふと|X
 島|island|トウ|しま|X
-末|end|マツ|すえ|X
+末|tip; end of|マツ|すえ|X
 未|not yet|ミ||X
 矢|arrow|シ|や|X
 失|to lose|シツ|うしな|X
@@ -495,15 +495,108 @@ const RAW = `
 汽|steam|キ||X
 馬|horse|バ|うま|X
 交|to mix; cross|コウ|まじ|X
-京|capital city|キョウ||X
-親|parent|シン|おや|X
+京|capital city|キョウ||N4
+親|parent|シン|おや|N4
 反|against|ハン|そ|X
 取|to take|シュ|と|X
 良|good|リョウ|よ|X
 米|rice|ベイ|こめ|X
 晴|clear weather|セイ|は|X
-止|to stop|シ|と|X
+止|to stop|シ|と|N4
 区|ward; district|ク||X
+同|same|ドウ|おな|N4
+事|matter; affair|ジ|こと|N4
+発|to depart; emit|ハツ・ホツ||N4
+者|someone; -er|シャ|もの|N4
+地|ground; land|チ・ジ||N4
+業|industry; work|ギョウ|わざ|N4
+場|place|ジョウ|ば|N4
+員|member|イン||N4
+代|generation; substitute|ダイ・タイ|か・よ|N4
+動|to move|ドウ|うご|N4
+通|to pass through; commute|ツウ|とお・かよ|N4
+理|logic; principle|リ||N4
+題|topic; title|ダイ||N4
+意|meaning; mind|イ||N4
+不|not; un-|フ・ブ||N4
+用|errand; task|ヨウ|もち|N4
+度|degree|ド|たび|N4
+公|public|コウ|おおやけ|N4
+野|field|ヤ|の|N4
+以|by means of; since|イ||N4
+世|world; society|セ・セイ|よ|N4
+正|correct|セイ・ショウ|ただ|N4
+院|institution|イン||N4
+教|to teach|キョウ|おし|N4
+文|sentence; writing|ブン・モン|ふみ|N4
+元|former; source|ゲン・ガン|もと|N4
+考|to consider|コウ|かんが|N4
+集|to gather|シュウ|あつ|N4
+別|separate; different|ベツ|わか|N4
+物|thing; object|ブツ・モツ|もの|N4
+品|goods; article|ヒン|しな|N4
+計|to measure|ケイ|はか|N4
+死|death|シ|し|N4
+私|I; private|シ|わたし|N4
+始|to begin|シ|はじ|N4
+運|to carry; luck|ウン|はこ|N4
+終|to finish|シュウ|お|N4
+台|stand; platform|ダイ・タイ||N4
+無|nothing; without|ム・ブ|な|N4
+有|to have; exist|ユウ・ウ|あ|N4
+料|fee; materials|リョウ||N4
+工|craft; construction|コウ・ク||N4
+建|to build|ケン|た|N4
+急|hurry; sudden|キュウ|いそ|N4
+送|to send|ソウ|おく|N4
+切|to cut|セツ|き|N4
+転|to roll over|テン|ころ|N4
+研|to polish; sharpen|ケン|と|N4
+究|to research|キュウ|きわ|N4
+起|to wake up|キ|お|N4
+着|to arrive; to wear|チャク|き・つ|N4
+質|quality|シツ||N4
+試|to attempt|シ|ため|N4
+験|examination|ケン||N4
+族|tribe; family group|ゾク||N4
+銀|silver|ギン||N4
+映|to reflect; project|エイ|うつ|N4
+英|England; English|エイ||N4
+仕|to serve; do|シ|つか|N4
+去|past; to leave|キョ・コ|さ|N4
+味|taste|ミ|あじ|N4
+注|to pour; note|チュウ|そそ|N4
+帰|to return home|キ|かえ|N4
+図|map; drawing|ズ・ト|はか|N4
+室|room|シツ|むろ|N4
+風|wind|フウ|かぜ|N4
+紙|paper|シ|かみ|N4
+館|large building|カン||N4
+屋|roof; dealer|オク|や|N4
+習|to learn|シュウ|なら|N4
+洋|Western; ocean|ヨウ||N4
+旅|trip|リョ|たび|N4
+服|clothes|フク||N4
+借|to borrow|シャク|か|N4
+貸|to lend|タイ|か|N4
+堂|hall; temple|ドウ||N4
+飯|cooked rice; meal|ハン|めし|N4
+弟|younger brother|テイ・ダイ|おとうと|N4
+兄|older brother|ケイ・キョウ|あに|N4
+妹|younger sister|マイ|いもうと|N4
+姉|older sister|シ|あね|N4
+漢|China (Han)|カン||N4
+悪|bad|アク|わる|N4
+便|convenience; mail|ベン・ビン|たよ|N4
+利|profit; advantage|リ|き|N4
+低|low|テイ|ひく|N4
+説|to explain|セツ|と|N4
+光|light (rays)|コウ|ひかり|N4
+引|to pull|イン|ひ|N4
+回|-times; to rotate|カイ|まわ|N4
+声|voice|セイ|こえ|N4
+頭|head|トウ・ズ|あたま|N4
+首|neck|シュ|くび|N4
 `;
 // Sets N5 and N4 are practised. Set X kanji only ever appear as look-alike extras.
 const KANJI = RAW.trim().split("\n").map(l => {
@@ -522,7 +615,12 @@ const LOOKALIKES = [
   "楽薬", "東車", "東重", "目日", "千午", "干千", "力刀",
   "円内", "年午", "分刀", "中申", "由田", "北比", "気汽", "駅馬", "校交", "父交", "高京", "新親",
   "友反", "耳取", "足走", "食良", "食飲", "来米", "青晴", "歩止", "歩少", "医区", "勉力",
+  "族旅", "便使", "験駅", "映英", "洋海", "屋室", "銀金", "動重", "終冬", "紙低", "究空", "台始",
+  "公分", "不下", "首道", "声売", "料米", "姉妹", "借貸", "研形", "試式", "理里", "起走", "回口",
   // Wider families: similar shapes or a shared part.
+  "族旅方", "注住主", "館飯飲食", "員貝買質貸", "正止足", "文父交", "元兄先光", "者考教",
+  "物牛特", "計話言試説", "私秋利", "始姉妹", "有右友", "送通近遠", "切刀七", "転軽車",
+  "起走赤", "頭顔題", "悪思意急", "度広店席", "図国回", "代式試", "理野黒", "意音暗", "用月円",
   "門問間聞開閉", "自白目百", "王玉主", "土士上", "大太犬天夫", "未末木本", "矢失知", "刀力九",
   "中申由田", "友右左", "家字安", "見貝買", "水氷永", "干千午十", "鳥島", "持待特時", "字学子", "万方", "住主体",
   "木本休体", "木村休", "人入八", "大天犬", "午牛千十", "半千十", "手千午",
@@ -682,10 +780,12 @@ function resetRounds() {
 function pickDecoys(n) {
   const m = mode();
   const exclude = new Set(state.targets);
-  const taken = new Set(state.targets.map(k => face(m.choice, BY_K[k])));
-  const ok = k => !exclude.has(k) && !taken.has(face(m.choice, BY_K[k]));
+  // Some kanji share a reading (医, 意 and 以 are all イ). An extra must not match any
+  // word on the board, on either side, or there would be two right answers.
+  const taken = new Set(state.targets.flatMap(k => [face(m.choice, BY_K[k]), face(m.prompt, BY_K[k])]));
+  const ok = k => !exclude.has(k) && !taken.has(face(m.choice, BY_K[k])) && !taken.has(face(m.prompt, BY_K[k]));
   const out = [];
-  const add = k => { out.push(k); exclude.add(k); taken.add(face(m.choice, BY_K[k])); };
+  const add = k => { out.push(k); exclude.add(k); taken.add(face(m.choice, BY_K[k])); taken.add(face(m.prompt, BY_K[k])); };
   if (settings.alike) {
     // Round-robin: give each word on the board a look-alike of its answer before doubling up.
     const inPool = new Set(pool().map(x => x.k));
@@ -708,9 +808,15 @@ function pickDecoys(n) {
 }
 function fillBoard() {
   const q = state.round.queue;
-  while (state.targets.length < settings.pairs && q.length) {
-    const k = q.shift();
-    if (!state.targets.includes(k)) state.targets.push(k);
+  // Never put two words with the same reading (or meaning) on the board at once;
+  // a clashing word waits in the queue until the other one is answered.
+  const m = mode();
+  const faces = k => [face(m.prompt, BY_K[k]), face(m.choice, BY_K[k])];
+  for (let i = 0; state.targets.length < settings.pairs && i < q.length; ) {
+    const k = q[i];
+    const used = new Set(state.targets.flatMap(faces));
+    if (state.targets.includes(k) || faces(k).some(f => used.has(f))) { i++; continue; }
+    state.targets.push(k); q.splice(i, 1);
   }
   state.decoys = pickDecoys(extra());
   // The left column keeps its order: a new word takes the answered word's slot.
